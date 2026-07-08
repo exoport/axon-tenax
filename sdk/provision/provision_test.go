@@ -1,4 +1,4 @@
-package provision
+package provision //nolint:testpackage // white-box test of unexported provision internals
 
 // provision_test.go — round-trip tests for the sdk/provision typed client
 // (Story 49.2, Task 4.7).

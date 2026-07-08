@@ -1,4 +1,4 @@
-package sdk
+package sdk //nolint:testpackage // white-box test of unexported sdk internals
 
 import (
 	"encoding/json"
@@ -548,7 +548,7 @@ func (stubContext) Sleep(_ time.Duration) error {
 }
 
 func (stubContext) Timer(_ time.Duration) (Promise, error) {
-	return nil, nil
+	return nil, nil //nolint:nilnil // test stub double returns no value and no error
 }
 
 func (stubContext) Get(_ string) (value []byte, found bool, err error) {

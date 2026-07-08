@@ -41,7 +41,7 @@ var _ sdk.Context = (*combinatorTestCtx)(nil)
 func (c *combinatorTestCtx) Run(_ string, fn func(string) ([]byte, error)) ([]byte, error) {
 	return fn("inv_test/0")
 }
-func (c *combinatorTestCtx) Sleep(_ time.Duration) error                { return nil }
+func (c *combinatorTestCtx) Sleep(_ time.Duration) error { return nil }
 func (c *combinatorTestCtx) Timer(_ time.Duration) (sdk.Promise, error) {
 	c.timerCalled = true
 	return sdk.NewPromiseWithID(0, func() ([]byte, error) { return nil, nil }), nil
@@ -55,6 +55,7 @@ func (c *combinatorTestCtx) Send(_, _ string, _ []byte) (string, error) { return
 func (c *combinatorTestCtx) SendDelayed(_, _ string, _ []byte, _ time.Duration) (string, error) {
 	return "", nil
 }
+
 func (c *combinatorTestCtx) SendAt(_, _ string, _ []byte, _ time.Time) (string, error) {
 	return "", nil
 }
@@ -69,21 +70,26 @@ func (c *combinatorTestCtx) GetVersion(_ string, _, _ int) (int, error) { return
 func (c *combinatorTestCtx) RegisterCompensation(_ func(sdk.Context) error) (string, error) {
 	return "cmp_stub", nil
 }
+
 func (c *combinatorTestCtx) Race(_ ...sdk.Promise) ([]byte, error) {
 	c.raceCalled = true
 	return nil, nil
 }
+
 func (c *combinatorTestCtx) AwaitAny(_ ...sdk.Promise) ([]byte, error) {
 	c.awaitAnyCalled = true
 	return nil, nil
 }
+
 func (c *combinatorTestCtx) AwaitAll(_ ...sdk.Promise) ([]byte, error) {
 	c.awaitAllCalled = true
 	return nil, nil
 }
+
 func (c *combinatorTestCtx) AwaitFirstSucceeded(_ ...sdk.Promise) ([]byte, error) {
 	return nil, nil
 }
+
 func (c *combinatorTestCtx) AwaitAllSucceeded(_ ...sdk.Promise) ([]byte, error) {
 	return nil, nil
 }

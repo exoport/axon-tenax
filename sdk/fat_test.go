@@ -47,7 +47,7 @@ func TestSDKImportGraphNoForbiddenInternals(t *testing.T) {
 
 	// Run: go list -deps github.com/exoport/axon-tenax/sdk/...
 	// This lists all transitive dependencies of the sdk package(s).
-	cmd := exec.Command("go", "list", "-deps", "github.com/exoport/axon-tenax/sdk/...")
+	cmd := exec.Command("go", "list", "-deps", "github.com/exoport/axon-tenax/sdk/...") //nolint:noctx // boundary test shells out to go list
 	out, err := cmd.CombinedOutput()
 	if err != nil {
 		t.Fatalf("go list -deps sdk/... failed: %v\noutput: %s", err, out)

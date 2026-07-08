@@ -9,7 +9,7 @@ import "time"
 // All nondeterministic operations (time, random, UUID) must be obtained via
 // ctx.Now, ctx.Rand, ctx.UUID respectively — never call time.Now(), math/rand,
 // or uuid libraries directly in handler bodies (ADR-0011).
-type Context interface {
+type Context interface { //nolint:interfacebloat // the ctx.* durable API is intentionally a single interface
 	// Run executes the given function as a durable side effect, exactly once live.
 	// fn receives opID of the form "<invID>/<entryIndex>" where entryIndex is the
 	// RunCommand's 0-based journal position. The opID is stable across crash-and-replay,

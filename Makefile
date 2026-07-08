@@ -22,10 +22,11 @@ test-pretty: $(GOTESTSUM)
 lint: $(GOLANGCI_LINT)
 	$(GOLANGCI_LINT) run
 
-# fmt formats the tree with gofumpt then goimports (local-prefix grouping).
+# fmt formats the tree with gofumpt then goimports (matches the .golangci.yaml
+# formatters block, which uses goimports with no local-prefix).
 fmt: $(GOFUMPT) $(GOIMPORTS)
 	$(GOFUMPT) -l -w .
-	$(GOIMPORTS) -w -local github.com/exoport/axon-tenax .
+	$(GOIMPORTS) -w .
 
 # vuln scans the module for known vulnerabilities (govulncheck).
 vuln: $(GOVULNCHECK)

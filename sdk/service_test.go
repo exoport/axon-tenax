@@ -1,4 +1,4 @@
-package sdk
+package sdk //nolint:testpackage // white-box test of unexported sdk internals
 
 import (
 	"errors"
@@ -276,7 +276,7 @@ func TestSDKPackageHasNoInternalImports(t *testing.T) {
 	// Run go list to get the import list for the sdk package.
 	// This is the authoritative ADR-0028 gate.
 	// Run from the module root so the ./sdk/... pattern resolves correctly.
-	cmd := exec.Command("go", "list", "-f", "{{.Imports}}", "github.com/exoport/axon-tenax/sdk")
+	cmd := exec.Command("go", "list", "-f", "{{.Imports}}", "github.com/exoport/axon-tenax/sdk") //nolint:noctx // boundary test shells out to go list
 	out, err := cmd.Output()
 	if err != nil {
 		t.Skipf("go list failed (may be running inside a restricted env): %v", err)

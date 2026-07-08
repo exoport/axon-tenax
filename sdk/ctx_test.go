@@ -1,4 +1,4 @@
-package sdk
+package sdk //nolint:testpackage // white-box test of unexported sdk internals
 
 import (
 	"testing"
@@ -26,7 +26,7 @@ func (c *concreteCtx) Run(_ string, fn func(string) ([]byte, error)) ([]byte, er
 
 func (c *concreteCtx) Sleep(_ time.Duration) error { return nil }
 
-func (c *concreteCtx) Timer(_ time.Duration) (Promise, error) { return nil, nil }
+func (c *concreteCtx) Timer(_ time.Duration) (Promise, error) { return nil, nil } //nolint:nilnil // test stub double returns no value and no error
 
 func (c *concreteCtx) Get(_ string) (value []byte, found bool, err error) { return nil, false, nil }
 

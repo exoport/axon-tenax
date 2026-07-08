@@ -7,6 +7,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html). The SDK is versioned in
 lockstep with the [Tenax engine](https://github.com/exoar/axon_tenax_engine) release it targets.
 
+## [0.1.2] - 2026-07-08
+
+### Changed
+
+- **Lint config**: replaced the engine-derived `.golangci.yml` with the company-standard
+  `.golangci.yaml` (`default: all` minus the standard disable set), with **no** SDK-specific config
+  carve-outs. The few linters that don't fit the SDK's design are handled with inline `//nolint`
+  directives at the call sites instead: `interfacebloat` on the `ctx.*` `Context` interface,
+  `contextcheck` on the durable-path fat shim, and `testpackage`/`noctx`/`nilnil` on white-box test
+  files. The lone `goconst` finding was resolved with a shared test constant. Lints clean.
+
 ## [0.1.1] - 2026-07-08
 
 ### Added
@@ -40,5 +51,6 @@ boundary now structurally guarantees the SDK imports zero engine internals (ADR-
   builds standalone via `go get github.com/exoport/axon-tenax/sdk`.
 - **License**: Apache License 2.0.
 
+[0.1.2]: https://github.com/exoport/axon-tenax/compare/v0.1.1...v0.1.2
 [0.1.1]: https://github.com/exoport/axon-tenax/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/exoport/axon-tenax/releases/tag/v0.1.0

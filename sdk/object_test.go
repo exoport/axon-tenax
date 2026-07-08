@@ -1,4 +1,4 @@
-package sdk
+package sdk //nolint:testpackage // white-box test of unexported sdk internals
 
 import (
 	"errors"
@@ -222,7 +222,7 @@ func TestKeyedHandlerFunc_signature(t *testing.T) {
 // TestSDKPackageHasNoInternalImports_VO verifies that sdk/ imports zero
 // github.com/exoar/axon_tenax_engine/tenax/internal paths (ADR-0028).
 func TestSDKPackageHasNoInternalImports_VO(t *testing.T) {
-	cmd := exec.Command("go", "list", "-f", "{{.Imports}}", "github.com/exoport/axon-tenax/sdk")
+	cmd := exec.Command("go", "list", "-f", "{{.Imports}}", "github.com/exoport/axon-tenax/sdk") //nolint:noctx // boundary test shells out to go list
 	out, err := cmd.Output()
 	if err != nil {
 		t.Skipf("go list failed (may be running inside a restricted env): %v", err)

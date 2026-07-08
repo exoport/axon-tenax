@@ -1,10 +1,12 @@
-package sdk
+package sdk //nolint:testpackage // white-box test of unexported sdk internals
 
 import (
 	"errors"
 	"strings"
 	"testing"
 )
+
+const testCalleeInvID = "callee_inv_sdk_test_001" // shared callee-invocation test fixture id
 
 // ---------------------------------------------------------------------------
 // Task 6.2 — ctx.Send() signature verification
@@ -31,7 +33,7 @@ func TestContextInterface_SendSignature(t *testing.T) {
 type sendSuccessCtx struct{ concreteCtx }
 
 func (c *sendSuccessCtx) Send(_, _ string, _ []byte) (string, error) {
-	return "callee_inv_sdk_test_001", nil
+	return testCalleeInvID, nil
 }
 
 // TestSend_Success verifies that ctx.Send() returns (calleeInvID, nil) on success.
@@ -45,8 +47,8 @@ func TestSend_Success(t *testing.T) {
 	if calleeInvID == "" {
 		t.Error("Send(): calleeInvID is empty on success")
 	}
-	if calleeInvID != "callee_inv_sdk_test_001" {
-		t.Errorf("calleeInvID=%q, want %q", calleeInvID, "callee_inv_sdk_test_001")
+	if calleeInvID != testCalleeInvID {
+		t.Errorf("calleeInvID=%q, want %q", calleeInvID, testCalleeInvID)
 	}
 }
 

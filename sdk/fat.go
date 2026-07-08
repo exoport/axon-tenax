@@ -296,7 +296,7 @@ func SubmitResult(ctx context.Context, js jetstream.JetStream, inv string, expec
 	// (idempotent because the CAS fence prevents double-apply, ADR-0004).
 	for range fatMaxAttempts {
 		opCtx, cancel := fatNatsCtx(fatSubmitTimeout)
-		ack, pubErr := js.Publish(opCtx, subj, outerBytes,
+		ack, pubErr := js.Publish(opCtx, subj, outerBytes, //nolint:contextcheck // fresh short per-op deadline ctx on the durable path
 			jetstream.WithExpectLastSequencePerSubject(expectedLast))
 		cancel()
 
@@ -328,14 +328,14 @@ func LastJournalSeq(ctx context.Context, js jetstream.JetStream, inv string) (ui
 	_ = ctx // per-op deadline created inside via fatNatsCtx (ADR-0007)
 
 	opCtx, cancel := fatNatsCtx(fatSubmitTimeout)
-	s, err := js.Stream(opCtx, fatJournalStreamName)
+	s, err := js.Stream(opCtx, fatJournalStreamName) //nolint:contextcheck // fresh short per-op deadline ctx on the durable path
 	cancel()
 	if err != nil {
 		return 0, fmt.Errorf("sdk/fat: LastJournalSeq inv %s: open stream: %w", inv, err)
 	}
 
 	opCtx2, cancel2 := fatNatsCtx(fatSubmitTimeout)
-	m, err := s.GetLastMsgForSubject(opCtx2, subjectForInv(inv))
+	m, err := s.GetLastMsgForSubject(opCtx2, subjectForInv(inv)) //nolint:contextcheck // fresh short per-op deadline ctx on the durable path
 	cancel2()
 	if err != nil {
 		if errors.Is(err, jetstream.ErrMsgNotFound) {

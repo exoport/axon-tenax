@@ -1,4 +1,4 @@
-package sdk
+package sdk //nolint:testpackage // white-box test of unexported sdk internals
 
 import (
 	"errors"
@@ -190,8 +190,8 @@ func TestSend_RegressionUnchanged(t *testing.T) {
 	if calleeInvID == "" {
 		t.Error("Send() regression: calleeInvID is empty")
 	}
-	if calleeInvID != "callee_inv_sdk_test_001" {
-		t.Errorf("Send() regression: calleeInvID=%q, want %q", calleeInvID, "callee_inv_sdk_test_001")
+	if calleeInvID != testCalleeInvID {
+		t.Errorf("Send() regression: calleeInvID=%q, want %q", calleeInvID, testCalleeInvID)
 	}
 	t.Log("sdk.Context.Send regression: PASSED — immediate send unchanged by delayed-send addition")
 }
