@@ -147,10 +147,10 @@ type fatOutputPayload struct {
 // SeqNo is 0 for entries constructed before append (assigned by JetStream).
 // No omitempty — present-with-default and absent must be distinguishable (ADR-0009).
 type fatJournalEntry struct {
-	SeqNo       uint64 `json:"seqNo"`
-	Type        uint8  `json:"type"`
 	Payload     []byte `json:"payload"`
+	SeqNo       uint64 `json:"seqNo"`
 	AppChecksum uint32 `json:"appChecksum"`
+	Type        uint8  `json:"type"`
 }
 
 // ---------------------------------------------------------------------------

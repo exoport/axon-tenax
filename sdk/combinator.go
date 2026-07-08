@@ -21,8 +21,8 @@ import (
 // ADR-0032: struct fields use camelCase json tags; no omitempty; contractVersion 2.
 // (Story 19.7, ADR-0009, ADR-0028, ADR-0032)
 type CombinatorError struct {
-	Code    int    `json:"code"`    // §11 numeric code (572 or 573)
 	Message string `json:"message"` // human-readable detail (NOT byte-identity-asserted)
+	Code    int    `json:"code"`    // §11 numeric code (572 or 573)
 }
 
 // Error implements the error interface.

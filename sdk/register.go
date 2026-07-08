@@ -35,10 +35,10 @@ var (
 // Registry is safe for concurrent reads after all Register calls complete (i.e.
 // after the worker process has finished its startup registration phase).
 type Registry struct {
-	mu             sync.RWMutex
 	services       map[string]*Service
 	virtualObjects map[string]*VirtualObject
 	workflows      map[string]*Workflow // Story 5.7: run-once keyed workflows
+	mu             sync.RWMutex
 }
 
 // NewRegistry constructs an empty Registry.
@@ -237,16 +237,16 @@ func GlobalRegistry() *Registry {
 // Name is the stable string used as the registry key.
 // Handlers maps handler names to their HandlerFunc implementations.
 type ServiceDescription struct {
-	Name     string
 	Handlers map[string]HandlerFunc
+	Name     string
 }
 
 // ObjectDescription describes a Virtual Object (keyed, single-writer) and its handlers.
 // Name is the stable string used as the registry key.
 // Handlers maps handler names to their HandlerFunc implementations.
 type ObjectDescription struct {
-	Name     string
 	Handlers map[string]HandlerFunc
+	Name     string
 }
 
 // Option is a functional option for SDK construction.

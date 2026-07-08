@@ -59,8 +59,8 @@ var (
 // All nondeterministic operations must use ctx.Now(), ctx.Rand(), ctx.UUID()
 // rather than time.Now(), math/rand, or UUID libraries directly (ADR-0011).
 type VirtualObject struct {
-	name     string
 	handlers map[string]KeyedHandlerFunc
+	name     string
 }
 
 // NewVirtualObject creates a new VirtualObject authoring definition with the
@@ -122,8 +122,8 @@ func (o *VirtualObject) HandlerType() HandlerType { return VirtualObjectType }
 // Note: ObjectBuilder uses HandlerFunc (the unkeyed signature). For Virtual Object
 // handlers that need the key parameter and per-key state, use NewVirtualObject instead.
 type ObjectBuilder struct {
-	name     string
 	handlers map[string]HandlerFunc
+	name     string
 }
 
 // Object creates a new ObjectBuilder for a Virtual Object (keyed, single-writer)

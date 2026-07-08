@@ -82,10 +82,10 @@ type QueryHandlerFunc func(ctx QueryContext, args json.RawMessage) (json.RawMess
 // to internal/runtime is via the Context interface and the established
 // SDK↔state machine protocol.
 type Workflow struct {
-	name    string
 	run     KeyedHandlerFunc            // main workflow handler (run-once)
 	queries map[string]QueryHandlerFunc // registered query handlers
 	signals map[string]HandlerFunc      // registered signal handlers (awakeable-backed)
+	name    string
 }
 
 // NewWorkflow creates a new Workflow definition with the given name.

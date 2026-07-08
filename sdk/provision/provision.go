@@ -319,13 +319,13 @@ func (c *Client) DeleteEventSource(ctx context.Context, bindingID string) (*Dele
 // avoids a fourth near-duplicate struct for a request shape internal/admin
 // itself represents with three distinct (but Caps-less-delete) types.
 type TenantConfig struct {
-	Project    string `json:"project"`
-	InstanceID int64  `json:"instanceId"`
-	TenantID   int64  `json:"tenantId"`
 	// Caps is optional per-tenant capacity cap policy (Story 50.3). Nil
 	// means "no caps specified" (uncapped default) — mirrors
 	// TenantCreateOpts.Caps's own nil-means-uncapped contract exactly.
-	Caps *TenantCaps `json:"caps,omitempty"`
+	Caps       *TenantCaps `json:"caps,omitempty"`
+	Project    string      `json:"project"`
+	InstanceID int64       `json:"instanceId"`
+	TenantID   int64       `json:"tenantId"`
 }
 
 // TenantCaps mirrors internal/admin.TenantCapsOpts field-for-field (Story
@@ -347,14 +347,14 @@ type TenantCaps struct {
 // never fabricates a Credentials/Caps section that the wire response did
 // not itself carry; it merely decodes whatever the admin handler sent.
 type Tenant struct {
-	TenantID    int64              `json:"tenantId"`
-	Project     string             `json:"project"`
-	InstanceID  int64              `json:"instanceId"`
-	AccountName string             `json:"accountName"`
-	Phase       string             `json:"phase"`
 	UpdatedAt   time.Time          `json:"updatedAt"`
 	Credentials *TenantCredentials `json:"credentials,omitempty"`
 	Caps        *TenantCaps        `json:"caps,omitempty"`
+	Project     string             `json:"project"`
+	AccountName string             `json:"accountName"`
+	Phase       string             `json:"phase"`
+	TenantID    int64              `json:"tenantId"`
+	InstanceID  int64              `json:"instanceId"`
 }
 
 // TenantCredentials mirrors internal/admin.TenantCredentialSet (Story

@@ -7,13 +7,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html). The SDK is versioned in
 lockstep with the [Tenax engine](https://github.com/exoar/axon_tenax_engine) release it targets.
 
-## [Unreleased]
+## [0.1.1] - 2026-07-08
 
 ### Added
 
 - **Tooling**: `Makefile` + bingo-pinned Go tools (golangci-lint, govulncheck, gofumpt,
   goimports, betteralign, gotestsum, gomajor) with `make lint` / `fmt` / `vuln` / `audit` /
-  `tools` / `toolsupdate`, and this changelog. (Added after the `v0.1.0` tag; not part of it.)
+  `tools` / `toolsupdate`, and this changelog.
+
+### Changed
+
+- Struct fields reordered for memory efficiency (betteralign). No API change; the durable/wire
+  path is encoded with JCS canonical form (RFC 8785, sorted keys), so struct field order does not
+  affect serialized bytes there. Full test suite re-verified green.
 
 ## [0.1.0] - 2026-07-08
 
@@ -34,5 +40,5 @@ boundary now structurally guarantees the SDK imports zero engine internals (ADR-
   builds standalone via `go get github.com/exoport/axon-tenax/sdk`.
 - **License**: Apache License 2.0.
 
-[Unreleased]: https://github.com/exoport/axon-tenax/compare/v0.1.0...HEAD
+[0.1.1]: https://github.com/exoport/axon-tenax/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/exoport/axon-tenax/releases/tag/v0.1.0

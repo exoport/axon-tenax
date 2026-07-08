@@ -57,8 +57,8 @@ var (
 // All nondeterministic operations must use ctx.Now(), ctx.Rand(), ctx.UUID()
 // rather than time.Now(), math/rand, or UUID libraries directly (ADR-0011).
 type Service struct {
-	name     string
 	handlers map[string]HandlerFunc
+	name     string
 }
 
 // NewService creates a new stateless Service authoring definition with the
@@ -112,8 +112,8 @@ func (s *Service) HandlerType() HandlerType { return ServiceType }
 //	    ),
 //	)
 type ServiceBuilder struct {
-	name     string
 	handlers map[string]HandlerFunc
+	name     string
 }
 
 // NewServiceBuilder creates a new ServiceBuilder for a stateless service with the
