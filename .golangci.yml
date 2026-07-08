@@ -272,7 +272,7 @@ formatters:
     # ── carve-out #4: goimports local-prefixes ──
     goimports:
       local-prefixes:
-        - github.com/exoar/axon_tenax_engine/tenax
+        - github.com/exoport/axon-tenax
   exclusions:
     generated: lax
     paths:

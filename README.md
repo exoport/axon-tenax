@@ -33,6 +33,21 @@ release, metrics, contract) live in the engine repo.
 
 This module is versioned in lockstep with the Tenax engine release it targets.
 
+## Development
+
+Go development tools are version-pinned with [bingo](https://github.com/bwplotka/bingo)
+(`.bingo/*.mod`). Common targets:
+
+```shell
+make tools        # install the pinned tools (golangci-lint, govulncheck, gofumpt, ...)
+make test         # go test ./...
+make lint         # golangci-lint run
+make fmt          # gofumpt + goimports
+make vuln         # govulncheck ./...
+make audit        # go mod verify + govulncheck + lint + betteralign
+make toolsupdate  # bump + re-pin all tools (review the diff)
+```
+
 ## License
 
 [Apache License 2.0](LICENSE). See [NOTICE](NOTICE) for attribution.
