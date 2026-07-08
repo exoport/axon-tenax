@@ -1,0 +1,9 @@
+.vscode/
+
+# Go build/test artifacts
+**/*.test
+**/*.out
+bin/
+# OS / editor noise
+.DS_Store
+*.swp
