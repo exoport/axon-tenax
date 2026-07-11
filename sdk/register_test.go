@@ -8,6 +8,13 @@ import (
 	"time"
 )
 
+// testSvcName and testObjName are the shared service/object name fixtures reused across this
+// file's tests (goconst: each string recurs well past the 3-occurrence threshold).
+const (
+	testSvcName = "svc"
+	testObjName = "obj"
+)
+
 // noopHandler is a HandlerFunc used in tests.
 var noopHandler HandlerFunc = func(_ Context, req []byte) ([]byte, error) {
 	return req, nil
@@ -93,7 +100,7 @@ func TestNew_WithObject_Build_LookupObject(t *testing.T) {
 
 func TestDuplicateServiceRegistration(t *testing.T) {
 	svc := ServiceDescription{
-		Name:     "svc",
+		Name:     testSvcName,
 		Handlers: map[string]HandlerFunc{"h": noopHandler},
 	}
 	s := New(
@@ -115,7 +122,7 @@ func TestDuplicateServiceRegistration(t *testing.T) {
 
 func TestDuplicateObjectRegistration(t *testing.T) {
 	obj := ObjectDescription{
-		Name:     "obj",
+		Name:     testObjName,
 		Handlers: map[string]HandlerFunc{"h": noopHandler},
 	}
 	s := New(
@@ -153,7 +160,7 @@ func TestLookupService_NotFound(t *testing.T) {
 func TestLookupService_ServiceFound_HandlerNotFound(t *testing.T) {
 	s := New(
 		WithService(ServiceDescription{
-			Name:     "svc",
+			Name:     testSvcName,
 			Handlers: map[string]HandlerFunc{"a": noopHandler},
 		}),
 	)
@@ -161,7 +168,7 @@ func TestLookupService_ServiceFound_HandlerNotFound(t *testing.T) {
 		t.Fatalf("Build() error: %v", err)
 	}
 
-	_, err := s.LookupService("svc", "missing")
+	_, err := s.LookupService(testSvcName, "missing")
 	if err == nil {
 		t.Fatal("LookupService expected error for missing handler, got nil")
 	}
@@ -192,7 +199,7 @@ func TestLookupObject_NotFound(t *testing.T) {
 func TestLookupObject_ObjectFound_HandlerNotFound(t *testing.T) {
 	s := New(
 		WithObject(ObjectDescription{
-			Name:     "obj",
+			Name:     testObjName,
 			Handlers: map[string]HandlerFunc{"a": noopHandler},
 		}),
 	)
@@ -200,7 +207,7 @@ func TestLookupObject_ObjectFound_HandlerNotFound(t *testing.T) {
 		t.Fatalf("Build() error: %v", err)
 	}
 
-	_, err := s.LookupObject("obj", "missing")
+	_, err := s.LookupObject(testObjName, "missing")
 	if err == nil {
 		t.Fatal("LookupObject expected error for missing handler, got nil")
 	}
@@ -216,11 +223,11 @@ func TestLookupObject_ObjectFound_HandlerNotFound(t *testing.T) {
 func TestConcurrentLookupAfterBuild(t *testing.T) {
 	s := New(
 		WithService(ServiceDescription{
-			Name:     "svc",
+			Name:     testSvcName,
 			Handlers: map[string]HandlerFunc{"h": noopHandler},
 		}),
 		WithObject(ObjectDescription{
-			Name:     "obj",
+			Name:     testObjName,
 			Handlers: map[string]HandlerFunc{"h": noopHandler},
 		}),
 	)
@@ -235,7 +242,7 @@ func TestConcurrentLookupAfterBuild(t *testing.T) {
 	for range goroutines {
 		go func() {
 			defer wg.Done()
-			fn, err := s.LookupService("svc", "h")
+			fn, err := s.LookupService(testSvcName, "h")
 			if err != nil {
 				t.Errorf("LookupService error: %v", err)
 			}
@@ -245,7 +252,7 @@ func TestConcurrentLookupAfterBuild(t *testing.T) {
 		}()
 		go func() {
 			defer wg.Done()
-			fn, err := s.LookupObject("obj", "h")
+			fn, err := s.LookupObject(testObjName, "h")
 			if err != nil {
 				t.Errorf("LookupObject error: %v", err)
 			}
@@ -282,10 +289,10 @@ func TestSDKBoundary_NoInternalImports(t *testing.T) {
 
 func TestServiceBuilder_FluentBuild(t *testing.T) {
 	fn := noopHandler
-	desc := NewServiceBuilder("svc").Handle("greet", fn).Build()
+	desc := NewServiceBuilder(testSvcName).Handle("greet", fn).Build()
 
-	if desc.Name != "svc" {
-		t.Errorf("ServiceDescription.Name = %q; want %q", desc.Name, "svc")
+	if desc.Name != testSvcName {
+		t.Errorf("ServiceDescription.Name = %q; want %q", desc.Name, testSvcName)
 	}
 	if len(desc.Handlers) != 1 {
 		t.Errorf("ServiceDescription.Handlers len = %d; want 1", len(desc.Handlers))
@@ -311,13 +318,13 @@ func TestObjectBuilder_FluentBuild(t *testing.T) {
 }
 
 func TestServiceBuilder_MultipleHandlers(t *testing.T) {
-	desc := NewServiceBuilder("svc").
+	desc := NewServiceBuilder(testSvcName).
 		Handle("a", noopHandler).
 		Handle("b", greetHandler).
 		Build()
 
-	if desc.Name != "svc" {
-		t.Errorf("Name = %q; want %q", desc.Name, "svc")
+	if desc.Name != testSvcName {
+		t.Errorf("Name = %q; want %q", desc.Name, testSvcName)
 	}
 	if len(desc.Handlers) != 2 {
 		t.Errorf("Handlers len = %d; want 2", len(desc.Handlers))
@@ -469,17 +476,17 @@ func TestNew_NoOptions_BuildsClean(t *testing.T) {
 
 func TestNew_MixedServiceAndObject(t *testing.T) {
 	s := New(
-		WithService(NewServiceBuilder("svc").Handle("h", noopHandler).Build()),
-		WithObject(Object("obj").Handle("h", noopHandler).Build()),
+		WithService(NewServiceBuilder(testSvcName).Handle("h", noopHandler).Build()),
+		WithObject(Object(testObjName).Handle("h", noopHandler).Build()),
 	)
 	if err := s.Build(); err != nil {
 		t.Fatalf("Build() error: %v", err)
 	}
 
-	if _, err := s.LookupService("svc", "h"); err != nil {
+	if _, err := s.LookupService(testSvcName, "h"); err != nil {
 		t.Errorf("LookupService: %v", err)
 	}
-	if _, err := s.LookupObject("obj", "h"); err != nil {
+	if _, err := s.LookupObject(testObjName, "h"); err != nil {
 		t.Errorf("LookupObject: %v", err)
 	}
 }
@@ -572,6 +579,14 @@ func (stubContext) Call(_, _ string, _ []byte) ([]byte, error) {
 }
 
 func (stubContext) Send(_, _ string, _ []byte) (string, error) {
+	return "", nil
+}
+
+func (stubContext) CallWorkflow(_, _ string, _ []byte) ([]byte, error) {
+	return nil, nil
+}
+
+func (stubContext) SendWorkflow(_, _ string, _ []byte) (string, error) {
 	return "", nil
 }
 

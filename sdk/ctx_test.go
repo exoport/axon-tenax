@@ -40,6 +40,10 @@ func (c *concreteCtx) Call(_, _ string, _ []byte) ([]byte, error) { return nil, 
 
 func (c *concreteCtx) Send(_, _ string, _ []byte) (string, error) { return "", nil }
 
+func (c *concreteCtx) CallWorkflow(_, _ string, _ []byte) ([]byte, error) { return nil, nil }
+
+func (c *concreteCtx) SendWorkflow(_, _ string, _ []byte) (string, error) { return "", nil }
+
 func (c *concreteCtx) SendDelayed(_, _ string, _ []byte, _ time.Duration) (string, error) {
 	return "", nil
 }

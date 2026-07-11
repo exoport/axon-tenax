@@ -7,6 +7,22 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html). The SDK is versioned in
 lockstep with the [Tenax engine](https://github.com/exoar/axon_tenax_engine) release it targets.
 
+## [0.1.3] - PREPARED, not yet tagged
+
+### Added
+
+- **Keyed-Workflow dispatch verbs** (`sdk.Context`): `CallWorkflow(name, key string, req []byte)
+  ([]byte, error)` and `SendWorkflow(name, key string, req []byte) (string, error)` — mirror
+  `ctx.Call`/`ctx.Send` in shape but carry a Workflow `key`, letting handler code start and await a
+  keyed child Workflow (Story 56.1, ADR-0046, CR-20). Dispatch is run-once-per-key **attach**: a
+  second dispatch to the same `(name, key)` attaches to the single run-once instance rather than
+  starting a second run. An awaited `CallWorkflow` on a `COMPLETED` key returns the **recorded**
+  result; on a terminal `FAILED`/`KILLED`/`CANCELLED` key it surfaces the **recorded** terminal
+  error. `SendWorkflow` to a terminal key is a **no-op** that returns the existing invId. No
+  `internal/` import added (ADR-0028/0045 boundary preserved); the engine-side keyed dispatch wiring
+  that makes these verbs reachable on the live path lands in the engine's Story 56.2 (`require` bump
+  to this tag).
+
 ## [0.1.2] - 2026-07-08
 
 ### Changed

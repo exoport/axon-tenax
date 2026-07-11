@@ -52,6 +52,14 @@ func (c *combinatorTestCtx) Clear(_ string) error                       { return
 func (c *combinatorTestCtx) List() ([]string, error)                    { return nil, nil }
 func (c *combinatorTestCtx) Call(_, _ string, _ []byte) ([]byte, error) { return nil, nil }
 func (c *combinatorTestCtx) Send(_, _ string, _ []byte) (string, error) { return "", nil }
+func (c *combinatorTestCtx) CallWorkflow(_, _ string, _ []byte) ([]byte, error) {
+	return nil, nil
+}
+
+func (c *combinatorTestCtx) SendWorkflow(_, _ string, _ []byte) (string, error) {
+	return "", nil
+}
+
 func (c *combinatorTestCtx) SendDelayed(_, _ string, _ []byte, _ time.Duration) (string, error) {
 	return "", nil
 }

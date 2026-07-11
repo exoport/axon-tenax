@@ -32,6 +32,17 @@ import (
 	natstest "github.com/nats-io/nats-server/v2/test"
 )
 
+// Shared event-source / tenant test fixtures reused across this file's tests
+// (goconst: each string recurs well past the 3-occurrence threshold).
+const (
+	testStreamOrders     = "ORDERS"
+	testHandlerOrdersNew = "orders/handleNew"
+	testBindingIDA       = "evs_a"
+	testHandlerH1        = "h1"
+	testPhaseOnboarded   = "onboarded"
+	testProjectTenax     = "tenax"
+)
+
 // startTestServer starts an embedded, ephemeral-port NATS server for the
 // duration of the test and returns a connected *nats.Conn. Both the server
 // and the connection are torn down via t.Cleanup.
@@ -165,14 +176,14 @@ func TestClientCreateEventSourceRoundTrip(t *testing.T) {
 
 	got, err := client.CreateEventSource(ctx, BindingConfig{
 		BindingID:     "evs_orders-new-handler",
-		StreamName:    "ORDERS",
+		StreamName:    testStreamOrders,
 		SubjectFilter: "orders.>",
-		HandlerTarget: "orders/handleNew",
+		HandlerTarget: testHandlerOrdersNew,
 	})
 	if err != nil {
 		t.Fatalf("CreateEventSource: unexpected error: %v", err)
 	}
-	if got.BindingID != "evs_orders-new-handler" || got.StreamName != "ORDERS" || got.HandlerTarget != "orders/handleNew" {
+	if got.BindingID != "evs_orders-new-handler" || got.StreamName != testStreamOrders || got.HandlerTarget != testHandlerOrdersNew {
 		t.Errorf("CreateEventSource: unexpected response: %+v", got)
 	}
 }
@@ -184,7 +195,7 @@ func TestClientCreateEventSourceIdempotentReCreate(t *testing.T) {
 	client := NewClient(nc)
 	ctx := context.Background()
 
-	cfg := BindingConfig{BindingID: "evs_a", StreamName: "ORDERS", HandlerTarget: "orders/handleNew"}
+	cfg := BindingConfig{BindingID: testBindingIDA, StreamName: testStreamOrders, HandlerTarget: testHandlerOrdersNew}
 	if _, err := client.CreateEventSource(ctx, cfg); err != nil {
 		t.Fatalf("first create: unexpected error: %v", err)
 	}
@@ -201,10 +212,10 @@ func TestClientCreateEventSourceConflict(t *testing.T) {
 	client := NewClient(nc)
 	ctx := context.Background()
 
-	if _, err := client.CreateEventSource(ctx, BindingConfig{BindingID: "evs_a", StreamName: "ORDERS", HandlerTarget: "h1"}); err != nil {
+	if _, err := client.CreateEventSource(ctx, BindingConfig{BindingID: testBindingIDA, StreamName: testStreamOrders, HandlerTarget: testHandlerH1}); err != nil {
 		t.Fatalf("first create: unexpected error: %v", err)
 	}
-	_, err := client.CreateEventSource(ctx, BindingConfig{BindingID: "evs_a", StreamName: "SHIPMENTS", HandlerTarget: "h2"})
+	_, err := client.CreateEventSource(ctx, BindingConfig{BindingID: testBindingIDA, StreamName: "SHIPMENTS", HandlerTarget: "h2"})
 	if !errors.Is(err, ErrConflict) {
 		t.Errorf("conflicting re-create: expected errors.Is(err, ErrConflict); got %v", err)
 	}
@@ -213,7 +224,7 @@ func TestClientCreateEventSourceConflict(t *testing.T) {
 func TestClientListEventSourcesRoundTrip(t *testing.T) {
 	nc := startTestServer(t)
 	fake := newFakeEventSourceService(t, nc)
-	fake.bindings["evs_a"] = Binding{BindingID: "evs_a", StreamName: "ORDERS", HandlerTarget: "h1"}
+	fake.bindings[testBindingIDA] = Binding{BindingID: testBindingIDA, StreamName: testStreamOrders, HandlerTarget: testHandlerH1}
 	fake.bindings["evs_b"] = Binding{BindingID: "evs_b", StreamName: "SHIPMENTS", HandlerTarget: "h2"}
 
 	client := NewClient(nc)
@@ -243,14 +254,14 @@ func TestClientListEventSourcesEmpty(t *testing.T) {
 func TestClientInspectEventSourceRoundTrip(t *testing.T) {
 	nc := startTestServer(t)
 	fake := newFakeEventSourceService(t, nc)
-	fake.bindings["evs_a"] = Binding{BindingID: "evs_a", StreamName: "ORDERS", HandlerTarget: "h1"}
+	fake.bindings[testBindingIDA] = Binding{BindingID: testBindingIDA, StreamName: testStreamOrders, HandlerTarget: testHandlerH1}
 
 	client := NewClient(nc)
-	got, err := client.InspectEventSource(context.Background(), "evs_a")
+	got, err := client.InspectEventSource(context.Background(), testBindingIDA)
 	if err != nil {
 		t.Fatalf("InspectEventSource: unexpected error: %v", err)
 	}
-	if got.BindingID != "evs_a" {
+	if got.BindingID != testBindingIDA {
 		t.Errorf("InspectEventSource: unexpected binding: %+v", got)
 	}
 }
@@ -272,17 +283,17 @@ func TestClientInspectEventSourceNotFound(t *testing.T) {
 func TestClientDeleteEventSourceRoundTrip(t *testing.T) {
 	nc := startTestServer(t)
 	fake := newFakeEventSourceService(t, nc)
-	fake.bindings["evs_a"] = Binding{BindingID: "evs_a", StreamName: "ORDERS", HandlerTarget: "h1"}
+	fake.bindings[testBindingIDA] = Binding{BindingID: testBindingIDA, StreamName: testStreamOrders, HandlerTarget: testHandlerH1}
 
 	client := NewClient(nc)
-	got, err := client.DeleteEventSource(context.Background(), "evs_a")
+	got, err := client.DeleteEventSource(context.Background(), testBindingIDA)
 	if err != nil {
 		t.Fatalf("DeleteEventSource: unexpected error: %v", err)
 	}
-	if !got.Deleted || got.BindingID != "evs_a" {
+	if !got.Deleted || got.BindingID != testBindingIDA {
 		t.Errorf("DeleteEventSource: unexpected result: %+v", got)
 	}
-	if _, stillThere := fake.bindings["evs_a"]; stillThere {
+	if _, stillThere := fake.bindings[testBindingIDA]; stillThere {
 		t.Errorf("DeleteEventSource: binding still present after delete")
 	}
 }
@@ -391,7 +402,7 @@ func (f *fakeTenantService) handleCreate(r micro.Request) {
 		Project:     cfg.Project,
 		InstanceID:  cfg.InstanceID,
 		AccountName: fmt.Sprintf("tenax_%d_crux_%d", cfg.InstanceID, cfg.TenantID),
-		Phase:       "onboarded",
+		Phase:       testPhaseOnboarded,
 		UpdatedAt:   time.Now().UTC(),
 	}
 	if cfg.Caps != nil {
@@ -466,11 +477,11 @@ func TestClientCreateTenantRoundTrip(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	got, err := client.CreateTenant(ctx, TenantConfig{Project: "tenax", InstanceID: 1, TenantID: 42})
+	got, err := client.CreateTenant(ctx, TenantConfig{Project: testProjectTenax, InstanceID: 1, TenantID: 42})
 	if err != nil {
 		t.Fatalf("CreateTenant: unexpected error: %v", err)
 	}
-	if got.TenantID != 42 || got.Phase != "onboarded" || got.AccountName == "" {
+	if got.TenantID != 42 || got.Phase != testPhaseOnboarded || got.AccountName == "" {
 		t.Errorf("CreateTenant: unexpected response: %+v", got)
 	}
 	if got.Credentials == nil || got.Credentials.Client == nil || got.Credentials.Client.Seed == "" {
@@ -486,7 +497,7 @@ func TestClientCreateTenantWithCapsRoundTrip(t *testing.T) {
 
 	client := NewClient(nc)
 	got, err := client.CreateTenant(context.Background(), TenantConfig{
-		Project: "tenax", InstanceID: 1, TenantID: 7,
+		Project: testProjectTenax, InstanceID: 1, TenantID: 7,
 		Caps: &TenantCaps{StreamMaxBytes: 1 << 30, KVTTL: time.Hour},
 	})
 	if err != nil {
@@ -506,7 +517,7 @@ func TestClientCreateTenantReissuesFreshCredential(t *testing.T) {
 
 	client := NewClient(nc)
 	ctx := context.Background()
-	cfg := TenantConfig{Project: "tenax", InstanceID: 1, TenantID: 9}
+	cfg := TenantConfig{Project: testProjectTenax, InstanceID: 1, TenantID: 9}
 
 	first, err := client.CreateTenant(ctx, cfg)
 	if err != nil {
@@ -530,7 +541,7 @@ func TestClientCreateTenantPrecondition(t *testing.T) {
 	fake.preconditionErr = true
 
 	client := NewClient(nc)
-	_, err := client.CreateTenant(context.Background(), TenantConfig{Project: "tenax", InstanceID: 1, TenantID: 1})
+	_, err := client.CreateTenant(context.Background(), TenantConfig{Project: testProjectTenax, InstanceID: 1, TenantID: 1})
 	if !errors.Is(err, ErrPrecondition) {
 		t.Errorf("CreateTenant precondition: expected errors.Is(err, ErrPrecondition); got %v", err)
 	}
@@ -539,11 +550,11 @@ func TestClientCreateTenantPrecondition(t *testing.T) {
 func TestClientUpdateTenantRoundTrip(t *testing.T) {
 	nc := startTestServer(t)
 	fake := newFakeTenantService(t, nc)
-	fake.tenants[42] = Tenant{TenantID: 42, Project: "tenax", InstanceID: 1, Phase: "onboarded"}
+	fake.tenants[42] = Tenant{TenantID: 42, Project: testProjectTenax, InstanceID: 1, Phase: testPhaseOnboarded}
 
 	client := NewClient(nc)
 	got, err := client.UpdateTenant(context.Background(), 42, TenantConfig{
-		Project: "tenax", InstanceID: 1,
+		Project: testProjectTenax, InstanceID: 1,
 		Caps: &TenantCaps{StreamMaxMsgs: 1000},
 	})
 	if err != nil {
@@ -563,10 +574,10 @@ func TestClientUpdateTenantRoundTrip(t *testing.T) {
 func TestClientDeleteTenantRoundTrip(t *testing.T) {
 	nc := startTestServer(t)
 	fake := newFakeTenantService(t, nc)
-	fake.tenants[42] = Tenant{TenantID: 42, Project: "tenax", InstanceID: 1, Phase: "onboarded"}
+	fake.tenants[42] = Tenant{TenantID: 42, Project: testProjectTenax, InstanceID: 1, Phase: testPhaseOnboarded}
 
 	client := NewClient(nc)
-	got, err := client.DeleteTenant(context.Background(), TenantConfig{Project: "tenax", InstanceID: 1, TenantID: 42})
+	got, err := client.DeleteTenant(context.Background(), TenantConfig{Project: testProjectTenax, InstanceID: 1, TenantID: 42})
 	if err != nil {
 		t.Fatalf("DeleteTenant: unexpected error: %v", err)
 	}
@@ -581,8 +592,8 @@ func TestClientDeleteTenantRoundTrip(t *testing.T) {
 func TestClientListTenantsRoundTrip(t *testing.T) {
 	nc := startTestServer(t)
 	fake := newFakeTenantService(t, nc)
-	fake.tenants[1] = Tenant{TenantID: 1, Project: "tenax", InstanceID: 1, Phase: "onboarded"}
-	fake.tenants[2] = Tenant{TenantID: 2, Project: "tenax", InstanceID: 1, Phase: "onboarded"}
+	fake.tenants[1] = Tenant{TenantID: 1, Project: testProjectTenax, InstanceID: 1, Phase: testPhaseOnboarded}
+	fake.tenants[2] = Tenant{TenantID: 2, Project: testProjectTenax, InstanceID: 1, Phase: testPhaseOnboarded}
 
 	client := NewClient(nc)
 	got, err := client.ListTenants(context.Background())

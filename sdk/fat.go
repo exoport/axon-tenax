@@ -222,8 +222,10 @@ func fatContains(s, sub string) bool {
 
 // fatNatsCtx returns a fresh context with a short per-operation deadline.
 // Mirrors natsutil.Ctx without importing internal/natsutil (ADR-0007).
+// context.Background() is intentional here (not a caller-supplied parent) — this is a
+// leaf per-operation deadline per ADR-0007, not a cancellation-propagation context.
 func fatNatsCtx(d time.Duration) (context.Context, context.CancelFunc) {
-	return context.WithTimeout(context.Background(), d) //nolint:gosec // G118: intentional context.Background(); per-operation deadline per ADR-0007
+	return context.WithTimeout(context.Background(), d)
 }
 
 // ---------------------------------------------------------------------------

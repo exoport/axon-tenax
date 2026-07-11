@@ -94,6 +94,22 @@ type Context interface { //nolint:interfacebloat // the ctx.* durable API is int
 	// (Story 5.3, ADR-0006, ADR-0025)
 	Send(service, handler string, req []byte) (string, error)
 
+	// CallWorkflow starts (or attaches to) the keyed Workflow (name, key) and awaits its result.
+	// Dispatch is run-once-per-key ATTACH: a second CallWorkflow to the same (name, key) attaches to
+	// the single run-once instance — it does NOT start a second run. An awaited CallWorkflow on a
+	// COMPLETED key returns the recorded result; on a terminal FAILED/KILLED/CANCELLED key it
+	// surfaces the recorded terminal error. (CR-20 §1.4, frozen and Cortex-ACKed.)
+	//
+	// (Story 56.1, ADR-0046, ADR-0025, ADR-0028)
+	CallWorkflow(name, key string, req []byte) ([]byte, error)
+
+	// SendWorkflow starts (or attaches to) the keyed Workflow (name, key) fire-and-forget and returns
+	// its invocation id. Dispatch is run-once-per-key ATTACH. SendWorkflow to a terminal key is a
+	// no-op that returns the existing invId. (CR-20 §1.4, frozen and Cortex-ACKed.)
+	//
+	// (Story 56.1, ADR-0046, ADR-0025, ADR-0028)
+	SendWorkflow(name, key string, req []byte) (string, error)
+
 	// SendDelayed schedules a one-way fire-and-forget message to be dispatched at or
 	// after ctx.Now() + delay. Returns the scheduled invocation's eventual handle and
 	// nil on success. The caller does NOT suspend — execution continues immediately
