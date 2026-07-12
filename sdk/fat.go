@@ -225,7 +225,7 @@ func fatContains(s, sub string) bool {
 // context.Background() is intentional here (not a caller-supplied parent) — this is a
 // leaf per-operation deadline per ADR-0007, not a cancellation-propagation context.
 func fatNatsCtx(d time.Duration) (context.Context, context.CancelFunc) {
-	return context.WithTimeout(context.Background(), d)
+	return context.WithTimeout(context.Background(), d) //nolint:gosec // G118: intentional context.Background(); per-operation deadline per ADR-0007
 }
 
 // ---------------------------------------------------------------------------

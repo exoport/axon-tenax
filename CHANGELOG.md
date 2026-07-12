@@ -22,6 +22,22 @@ lockstep with the [Tenax engine](https://github.com/exoar/axon_tenax_engine) rel
   `internal/` import added (ADR-0028/0045 boundary preserved); the engine-side keyed dispatch wiring
   that makes these verbs reachable on the live path lands in the engine's Story 56.2 (`require` bump
   to this tag).
+- **`sdk.Serve` turnkey worker-serve surface** (`sdk`): `Serve(ctx context.Context, nc *nats.Conn,
+  reg *Registry, opts ...ServeOption) error` plus the v1-committed options `WithConcurrency(n int)`,
+  `WithDrainTimeout(d time.Duration)`, and `WithWorkerName(name string)` (defaults to `os.Hostname()`
+  when unset) — the frozen, Cortex-ACKed worker-side surface a separately-deployed SDK worker binary
+  (its own process, its own Go module) calls to consume Workflow dispatches over NATS (Story 57.1,
+  ADR-0047, CR-21). `Serve` takes an **explicit `*Registry`** — never the package-level
+  `GlobalRegistry()` singleton — and is scoped to the **Interpreter only**. The doc-commented failure
+  contract is frozen **identical to `--runtime inproc`**: a worker dying mid-dispatch leaves the
+  in-flight invocation journal-resumable by **any** restarted worker, with at-least-once redrive and
+  opId dedup bounding external effects to the crash-before-journal window — the same exactly-once
+  guarantee as inproc (Pin #2). `WithConcurrency`'s doc-comment states the v1-committed,
+  `MaxAckPending`-bound backpressure contract (Pin #1). **This story ships the frozen surface only**:
+  `Serve`'s body is a scoped, honestly-incomplete skeleton (argument validation + option resolution,
+  then blocks on `ctx` cancellation) — the real cross-process registration/discovery and work-queue
+  dispatch mechanics land in the engine's Story 57.2, behind this same signature. No `internal/`
+  import added (ADR-0028/0045 boundary preserved).
 
 ### Changed
 
