@@ -22,22 +22,32 @@ lockstep with the [Tenax engine](https://github.com/exoar/axon_tenax_engine) rel
   `internal/` import added (ADR-0028/0045 boundary preserved); the engine-side keyed dispatch wiring
   that makes these verbs reachable on the live path lands in the engine's Story 56.2 (`require` bump
   to this tag).
-- **`sdk.Serve` turnkey worker-serve surface** (`sdk`): `Serve(ctx context.Context, nc *nats.Conn,
-  reg *Registry, opts ...ServeOption) error` plus the v1-committed options `WithConcurrency(n int)`,
-  `WithDrainTimeout(d time.Duration)`, and `WithWorkerName(name string)` (defaults to `os.Hostname()`
-  when unset) — the frozen, Cortex-ACKed worker-side surface a separately-deployed SDK worker binary
-  (its own process, its own Go module) calls to consume Workflow dispatches over NATS (Story 57.1,
-  ADR-0047, CR-21). `Serve` takes an **explicit `*Registry`** — never the package-level
-  `GlobalRegistry()` singleton — and is scoped to the **Interpreter only**. The doc-commented failure
-  contract is frozen **identical to `--runtime inproc`**: a worker dying mid-dispatch leaves the
-  in-flight invocation journal-resumable by **any** restarted worker, with at-least-once redrive and
-  opId dedup bounding external effects to the crash-before-journal window — the same exactly-once
-  guarantee as inproc (Pin #2). `WithConcurrency`'s doc-comment states the v1-committed,
-  `MaxAckPending`-bound backpressure contract (Pin #1). **This story ships the frozen surface only**:
-  `Serve`'s body is a scoped, honestly-incomplete skeleton (argument validation + option resolution,
-  then blocks on `ctx` cancellation) — the real cross-process registration/discovery and work-queue
-  dispatch mechanics land in the engine's Story 57.2, behind this same signature. No `internal/`
-  import added (ADR-0028/0045 boundary preserved).
+- **`sdk.Serve` turnkey worker-serve surface — now FUNCTIONAL** (`sdk`): `Serve(ctx
+  context.Context, nc *nats.Conn, reg *Registry, opts ...ServeOption) error` plus the
+  v1-committed options `WithConcurrency(n int)`, `WithDrainTimeout(d time.Duration)`, and
+  `WithWorkerName(name string)` (defaults to `os.Hostname()` when unset) — the frozen,
+  Cortex-ACKed worker-side surface a separately-deployed SDK worker binary (its own process, its
+  own Go module) calls to consume Workflow dispatches over NATS (Story 57.1 surface, Story 59.1
+  body, ADR-0047, CR-21). `Serve` takes an **explicit `*Registry`** — never the package-level
+  `GlobalRegistry()` singleton — and is scoped to the **Interpreter only**. `Serve` now genuinely
+  **advertises** the registered `(serviceName, handlerName)` pairs to `tenaxd` via periodic
+  `WorkerAnnouncement` heartbeats, **binds a durable pull consumer** per pair on the shared
+  remote-dispatch work queue (`WithConcurrency(n)` binds directly to the consumer's
+  `MaxAckPending` — Pin #1), and **consumes, executes, and replies** to real dispatches: it acks
+  each pulled message only *after* computing the handler result and publishing the reply (Pin #2
+  ack-after-journal ordering — `tenaxd` journals the terminal entry from the reply before its own
+  dispatch returns), so a worker SIGKILLed mid-dispatch leaves the invocation un-acked and
+  JetStream redelivers it to **any** live worker on the same durable consumer — never pinned to
+  the dead process, the same exactly-once guarantee as `--runtime inproc`. `WithDrainTimeout`
+  bounds how long `Serve` waits for in-flight dispatches to finish after `ctx` is cancelled before
+  stopping. The wire envelopes (`RemoteDispatchRequest`/`Response`, `WorkerAnnouncement`/
+  `HandlerRef`) and substrate names are re-derived SDK-pure — byte-identical JSON tags, RFC 8785
+  JCS via `github.com/gowebpki/jcs` — conforming to the engine's frozen remote-dispatch corpus; no
+  `internal/` import added (ADR-0028/0045 boundary preserved, zero-imports boundary test green).
+  A handler dispatched via `Serve` receives a minimal `sdk.Context` whose `ctx.*` durable
+  operations (`Run`/`Sleep`/`Get`/`Set`/`Call`/...) return a clear, documented
+  `ErrRemoteContextUnsupported` — the single-request/response model (a full remote `ctx.*`
+  durable-primitive bridge is a documented v1 boundary, not yet built) (Story 59.1).
 
 ### Changed
 
