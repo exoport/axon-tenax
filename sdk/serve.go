@@ -123,20 +123,36 @@ func Serve(ctx context.Context, nc *nats.Conn, reg *Registry, opts ...ServeOptio
 
 	handlers := collectHandlerRefs(reg)
 
+	// serveCtx is an internally-cancellable view of ctx: the announce/fetch-loop goroutines
+	// below watch serveCtx (not ctx directly) so a genuine mid-startup bind failure (below) can
+	// signal them to stop even though the caller's ctx has not itself been cancelled — without
+	// this, a bind failure for a LATER (serviceName, handlerName) pair would leak the
+	// goroutines already started for EARLIER pairs (and the announce loop) past this function's
+	// return. cancelServe is deferred unconditionally so every return path releases it.
+	serveCtx, cancelServe := context.WithCancel(ctx)
+	defer cancelServe()
+
 	var wg sync.WaitGroup
 
 	if len(handlers) > 0 {
 		// Gap A: advertise — periodic WorkerAnnouncement heartbeats (Task 2).
 		wg.Go(func() {
-			runServeAnnounceLoop(ctx, nc, cfg.workerName, handlers)
+			runServeAnnounceLoop(serveCtx, nc, cfg.workerName, handlers)
 		})
 
 		// Gap B: consume + execute + publish, one shared durable consumer per (service,
 		// handler) pair, cfg.concurrency fetch-loop goroutines against each (Task 3, Pin #1).
 		for _, h := range handlers {
-			cons, bindErr := bindRemoteDispatchConsumer(ctx, js, h.ServiceName, h.HandlerName, cfg.concurrency)
+			cons, bindErr := bindRemoteDispatchConsumer(serveCtx, js, h.ServiceName, h.HandlerName, cfg.concurrency)
 			if bindErr != nil {
 				if errors.Is(bindErr, ErrServeConsumerBindFailed) {
+					// Genuine bind failure with the caller's ctx still live: cancel serveCtx so
+					// any goroutines already started for earlier handler pairs (and the announce
+					// loop) observe cancellation and exit, then wait for them (bounded by
+					// WithDrainTimeout, same budget as the ordinary shutdown path below) before
+					// returning — no goroutine leak past this return.
+					cancelServe()
+					waitDrained(&wg, cfg.drainTimeout)
 					return bindErr
 				}
 				// ctx was cancelled while waiting for the stream to appear (ordinary shutdown
@@ -148,17 +164,27 @@ func Serve(ctx context.Context, nc *nats.Conn, reg *Registry, opts ...ServeOptio
 			// every slot pulls from the one shared durable consumer (Pin #1).
 			for range max(cfg.concurrency, 1) {
 				wg.Go(func() {
-					runServeFetchLoop(ctx, nc, reg, cons)
+					runServeFetchLoop(serveCtx, nc, reg, cons)
 				})
 			}
 		}
 	}
 
 	<-ctx.Done()
+	cancelServe()
 
 	// Task 4.2: stop pulling new dispatches (the fetch loops above already check ctx.Done() at
 	// the top of every iteration), then wait up to WithDrainTimeout for in-flight invocations to
 	// finish before returning.
+	waitDrained(&wg, cfg.drainTimeout)
+
+	return nil
+}
+
+// waitDrained blocks until wg completes or timeout elapses, whichever comes first — the shared
+// bounded-drain primitive used both by Serve's ordinary ctx-cancellation shutdown path and by
+// its early-return-on-bind-failure path (Task 4.2).
+func waitDrained(wg *sync.WaitGroup, timeout time.Duration) {
 	drained := make(chan struct{})
 	go func() {
 		wg.Wait()
@@ -166,10 +192,8 @@ func Serve(ctx context.Context, nc *nats.Conn, reg *Registry, opts ...ServeOptio
 	}()
 	select {
 	case <-drained:
-	case <-time.After(cfg.drainTimeout):
+	case <-time.After(timeout):
 	}
-
-	return nil
 }
 
 // ---------------------------------------------------------------------------
