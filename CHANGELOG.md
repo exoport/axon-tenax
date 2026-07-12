@@ -23,6 +23,18 @@ lockstep with the [Tenax engine](https://github.com/exoar/axon_tenax_engine) rel
   that makes these verbs reachable on the live path lands in the engine's Story 56.2 (`require` bump
   to this tag).
 
+### Changed
+
+- **`CallWorkflow`/`SendWorkflow` doc-comments** (`sdk/ctx.go`): extended to state the in-flight
+  multi-registrant attach behavior — a second (and Nth) **IN-FLIGHT** caller to the same
+  `(name, key)`, dispatched while the callee is still `RUNNING`, attaches and (for an awaited
+  `CallWorkflow`) receives the same **recorded** terminal result once the callee terminates (no
+  permanent hang), consistent with the already-`COMPLETED` case documented above. `SendWorkflow`
+  stays fire-and-forget; the doc-comment clarifies that any caller which does await via
+  `CallWorkflow` gets the same recorded-result guarantee (Story 58.1, ADR-0048 — the engine-side
+  durable multi-registrant completion fan-out; hardens ADR-0046). Verb signatures are unchanged —
+  doc-comment-only.
+
 ## [0.1.2] - 2026-07-08
 
 ### Changed

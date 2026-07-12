@@ -100,12 +100,22 @@ type Context interface { //nolint:interfacebloat // the ctx.* durable API is int
 	// COMPLETED key returns the recorded result; on a terminal FAILED/KILLED/CANCELLED key it
 	// surfaces the recorded terminal error. (CR-20 §1.4, frozen and Cortex-ACKed.)
 	//
+	// A second (and Nth) IN-FLIGHT caller — dispatched while the callee is still RUNNING — also
+	// attaches: it suspends and resumes with the same recorded terminal result once the callee
+	// terminates (no hang), consistent with the already-terminal case above. (Story 58.1, ADR-0048.)
+	//
 	// (Story 56.1, ADR-0046, ADR-0025, ADR-0028)
 	CallWorkflow(name, key string, req []byte) ([]byte, error)
 
 	// SendWorkflow starts (or attaches to) the keyed Workflow (name, key) fire-and-forget and returns
 	// its invocation id. Dispatch is run-once-per-key ATTACH. SendWorkflow to a terminal key is a
 	// no-op that returns the existing invId. (CR-20 §1.4, frozen and Cortex-ACKed.)
+	//
+	// A second (and Nth) IN-FLIGHT dispatch to the same (name, key) — via SendWorkflow or
+	// CallWorkflow, issued while the callee is still RUNNING — attaches to the same run-once
+	// instance without starting a duplicate. SendWorkflow itself stays fire-and-forget (it never
+	// suspends), but any caller that DOES await via CallWorkflow attaches and receives the same
+	// recorded terminal result once the callee terminates (no hang). (Story 58.1, ADR-0048.)
 	//
 	// (Story 56.1, ADR-0046, ADR-0025, ADR-0028)
 	SendWorkflow(name, key string, req []byte) (string, error)
