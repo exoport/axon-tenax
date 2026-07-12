@@ -226,6 +226,25 @@ resp, err := ctx.Call("inventory", "reserve", payload)
 > to the NATS Micro subject `tenax.ingress.call`. See
 > [Admin API reference](https://github.com/exoar/axon_tenax_engine/blob/main/docs/how-to/admin-api.md) for the ingress subjects.
 
+### `ctx.CallWorkflow(name, key string, req []byte) ([]byte, error)`
+
+Starts (or attaches to) the keyed Workflow `(name, key)` and awaits its result — the Workflow
+counterpart of `ctx.Call`. Dispatch is **run-once-per-key attach**: a second `CallWorkflow` to the
+same `(name, key)` attaches to the single run-once instance rather than starting a second run.
+
+- Journals a keyed `CallCommand`; the invocation enters `SUSPENDED (reason: call)`.
+- An awaited `CallWorkflow` on a `COMPLETED` key returns the **recorded** result; on a terminal
+  `FAILED` / `KILLED` / `CANCELLED` key it surfaces the **recorded** terminal error (never a
+  fabricated status). Multiple distinct in-flight callers awaiting the same key all resume.
+- Creates the same parent-child call-tree edge as `ctx.Call`; cancel/kill propagates to the keyed
+  child. The `key` is a routing value, not a nondeterminism source (ADR-0011).
+
+```go
+result, err := ctx.CallWorkflow("cortex-interpreter", childKey, req)
+```
+
+See [Dispatch a keyed Workflow](../how-to/dispatch-a-keyed-workflow.md) for the task guide.
+
 ---
 
 ## §5 — One-Way Fire-and-Forget
@@ -250,6 +269,15 @@ replay — ADR-0011). **Never use `time.Now()` to compute `InvokeTime` directly.
 
 Schedules a message at the absolute UTC time `invokeAt`. Equivalent to
 `SendDelayed(..., time.Until(invokeAt))` but expressed in absolute terms.
+
+### `ctx.SendWorkflow(name, key string, req []byte) (string, error)`
+
+Starts (or attaches to) the keyed Workflow `(name, key)` fire-and-forget — the Workflow counterpart
+of `ctx.Send`. The caller does NOT suspend; returns the child invocation ID. Dispatch is
+**run-once-per-key attach**; `SendWorkflow` to an already-terminal key is a **no-op** that returns the
+existing invocation ID.
+
+See [Dispatch a keyed Workflow](../how-to/dispatch-a-keyed-workflow.md) for the task guide.
 
 ---
 

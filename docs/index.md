@@ -26,6 +26,10 @@ Goal-oriented recipes for a specific task.
   `ctx.Race` / `ctx.AwaitAny` / `ctx.AwaitAll`.
 - [Use awakeables and delayed sends](how-to/use-awakeables-and-delayed-sends.md)
   — wait on external systems and schedule messages for later.
+- [Dispatch a keyed Workflow](how-to/dispatch-a-keyed-workflow.md) — start/await a
+  keyed child Workflow with `ctx.CallWorkflow` / `ctx.SendWorkflow`.
+- [Serve a remote worker](how-to/serve-a-remote-worker.md) — run handlers in a
+  separate process with `sdk.Serve`.
 
 ## Reference
 
