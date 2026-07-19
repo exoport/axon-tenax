@@ -7,6 +7,37 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html). The SDK is versioned in
 lockstep with the [Tenax engine](https://github.com/exoar/axon_tenax_engine) release it targets.
 
+## [0.1.4] - 2026-07-19
+
+### Added
+
+- **Serve-time durable-`ctx.*` handler rejection guard** (`sdk`): `sdk.Serve` now validates the
+  supplied `Registry` before serving and refuses to start when a registered handler's durable
+  `ctx.*` use cannot be honoured over the remote-dispatch path. Two tiers: a **kind tier** that
+  rejects `Workflow` and `VirtualObject` handlers outright (both are definitionally durable), and
+  an **attestation tier** that rejects `Service`-only registries unless the caller passes the new
+  `WithNoDurableContextAttestation()` option — an explicit, attributable claim that the registered
+  Service handlers call no durable `ctx.*` primitive. Rejection returns an ADR-0030-classed error
+  (`what` / `cause` / `hint` triad plus an `Err…` sentinel) rather than failing at call time
+  (Story 68.1; implements engine Story 65.1's finding F1 spec and closes its F2 deferral).
+
+### Fixed
+
+- **The `remoteDispatchContext` silent-zero-value honesty defect is now gated** (`sdk`). Since the
+  remote-dispatch context was introduced, four durable verbs returned zero values with a `nil`
+  error — `Promise()` → `nil`, `Now()` → `time.Time{}`, `Rand()` → `0`, `UUID()` → `""` — while
+  the other 19 `ctx.*` verbs on the same type correctly returned `ErrRemoteContextUnsupported`. A
+  remote handler calling `ctx.Now()` therefore received the zero time and proceeded as though the
+  call had succeeded: a success surfaced for a state that was never durably committed.
+
+  **Honest scope of the fix.** The four methods still return those zero values, and cannot be made
+  to do otherwise — `Context` declares `Now() time.Time`, `Rand() float64`, `UUID() string` and
+  `Promise(id string) Promise` with **no `error` return** (`sdk/ctx.go`), so call-time rejection is
+  structurally impossible. What changed is **reachability**: the serve-time guard above rejects the
+  handler shapes that can reach them, so no handler arrives at a zero-value verb without an
+  explicit `WithNoDurableContextAttestation()` opt-in on the operator's own attestation. The
+  defect is **gated and attributable**, not deleted.
+
 ## [0.1.3] - 2026-07-12
 
 ### Added
@@ -105,6 +136,8 @@ boundary now structurally guarantees the SDK imports zero engine internals (ADR-
   builds standalone via `go get github.com/exoport/axon-tenax/sdk`.
 - **License**: Apache License 2.0.
 
+[0.1.4]: https://github.com/exoport/axon-tenax/compare/v0.1.3...v0.1.4
+[0.1.3]: https://github.com/exoport/axon-tenax/compare/v0.1.2...v0.1.3
 [0.1.2]: https://github.com/exoport/axon-tenax/compare/v0.1.1...v0.1.2
 [0.1.1]: https://github.com/exoport/axon-tenax/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/exoport/axon-tenax/releases/tag/v0.1.0
