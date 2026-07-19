@@ -73,8 +73,8 @@ func (e *ServeDurableContextRejectedError) Unwrap() error { return ErrServeDurab
 // requires the engine-side journal — Run/Sleep/Timer/Get/Set/Clear/List/Call/Send/
 // CallWorkflow/SendWorkflow/SendDelayed/SendAt/Awakeable/Promise/CompleteAwakeable/
 // RejectAwakeable/Now/Rand/UUID/GetVersion/RegisterCompensation/Race/AwaitAny/AwaitAll/
-// AwaitFirstSucceeded/AwaitAllSucceeded — all of which remoteDispatchContext either rejects
-// synchronously with ErrRemoteContextUnsupported (19 of 23 verbs) or, for
+// AwaitFirstSucceeded/AwaitAllSucceeded — 27 verbs total — all of which remoteDispatchContext
+// either rejects synchronously with ErrRemoteContextUnsupported (23 of 27 verbs) or, for
 // Promise/Now/Rand/UUID specifically, silently returns a zero value with a nil error today
 // (Story 65.1 review cycle 2 finding F2, closed by this guard's default-reject behavior).
 //

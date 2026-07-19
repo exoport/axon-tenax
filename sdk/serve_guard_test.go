@@ -25,6 +25,9 @@ package sdk //nolint:testpackage // white-box test of unexported sdk internals (
 import (
 	"context"
 	"errors"
+	"fmt"
+	"os"
+	"path/filepath"
 	"runtime"
 	"strings"
 	"testing"
@@ -433,15 +436,60 @@ func TestErrServeDurableContextRejected_DistinctFromOtherServeSentinels(t *testi
 // remoteDispatchContext reachability — Task 2.3 documentation test
 // ---------------------------------------------------------------------------
 
-// TestRemoteDispatchContext_OnlyReachableThroughGuardedDispatchPath is a documentation test
-// (Task 2.3): the only two production construction sites for remoteDispatchContext{} are inside
-// dispatchToHandler (serve.go), which is reachable only via handleServeDispatch, which is
-// reachable only via runServeFetchLoop, which Serve() starts only inside its
-// `if len(handlers) > 0` block — AFTER validateDurableContextGuard has already returned nil. No
-// other code path in serve.go/serve_wire.go constructs a remoteDispatchContext and hands it to a
-// handler that has not passed through the guard (re-verify at any time with: grep -n
-// 'remoteDispatchContext{}' sdk/*.go — exactly two matches outside this comment and
-// serve_test.go's interface-assertion fixture).
+// TestRemoteDispatchContext_OnlyReachableThroughGuardedDispatchPath is a regression check (Task
+// 2.3, tightened from a log-only documentation test during review): the only two production
+// construction sites for remoteDispatchContext{} are inside dispatchToHandler (serve.go), which
+// is reachable only via handleServeDispatch, which is reachable only via runServeFetchLoop, which
+// Serve() starts only inside its `if len(handlers) > 0` block — AFTER
+// validateDurableContextGuard has already returned nil. No other code path in
+// serve.go/serve_wire.go constructs a remoteDispatchContext and hands it to a handler that has
+// not passed through the guard.
+//
+// Rather than asserting that claim only in a doc comment, this test mechanically scans every
+// sdk/*.go source file (excluding this file itself, which mentions the marker only inside string
+// literals/comments, not as a live construction site) for non-comment `remoteDispatchContext{}`
+// occurrences and fails if the count drifts from the known-good baseline: two production
+// construction sites in serve.go (inside dispatchToHandler) plus two interface-assertion fixtures
+// — `var _ Context = remoteDispatchContext{}` in serve.go itself and the equivalent `var ctx
+// Context = remoteDispatchContext{}` in serve_test.go — neither of which hands a live instance to
+// a handler; both only prove the type satisfies Context at compile/test time. A drift means
+// either a new construction site appeared outside the guarded dispatch path (a guard-bypass
+// regression) or a known site was removed — either way this test must be re-examined by hand, not
+// silently rebaselined.
 func TestRemoteDispatchContext_OnlyReachableThroughGuardedDispatchPath(t *testing.T) {
-	t.Log("remoteDispatchContext{} construction sites: dispatchToHandler only (serve.go), reachable only via the Serve() code path that already passed validateDurableContextGuard — confirmed by code inspection, Story 68.1 Task 2.3")
+	const marker = "remoteDispatchContext{}"
+	const selfFile = "serve_guard_test.go"
+	const want = 4
+
+	files, err := filepath.Glob("*.go")
+	if err != nil {
+		t.Fatalf("filepath.Glob(*.go): %v", err)
+	}
+
+	var sites []string
+	for _, f := range files {
+		if f == selfFile {
+			continue
+		}
+		data, err := os.ReadFile(f)
+		if err != nil {
+			t.Fatalf("os.ReadFile(%s): %v", f, err)
+		}
+		for i, line := range strings.Split(string(data), "\n") {
+			if strings.HasPrefix(strings.TrimSpace(line), "//") {
+				continue
+			}
+			if strings.Contains(line, marker) {
+				sites = append(sites, fmt.Sprintf("%s:%d", f, i+1))
+			}
+		}
+	}
+
+	if len(sites) != want {
+		t.Fatalf("found %d non-comment %q occurrence(s) in sdk/*.go (want %d): %v\n"+
+			"this enforces Task 2.3 (Story 68.1): remoteDispatchContext must only be constructed "+
+			"inside dispatchToHandler, which Serve() only reaches after validateDurableContextGuard "+
+			"has returned nil — re-verify the guard still gates every construction site before "+
+			"changing this baseline", len(sites), marker, want, sites)
+	}
 }
