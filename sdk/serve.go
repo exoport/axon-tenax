@@ -104,6 +104,17 @@ var (
 // Objects, and Workflow run handlers), Serve has nothing to advertise or consume: it skips the
 // Gap A/B loops entirely and simply blocks on ctx cancellation, mirroring the pre-59.1 skeleton
 // behavior for that degenerate case.
+//
+// SERVE-TIME DURABLE-CTX.* GUARD (Story 68.1, implementing Story 65.1 review cycle 2 finding
+// F1's corrected spec and closing finding F2 — see serve_guard.go): before any dispatch begins,
+// Serve validates reg against the two-tier reject-by-default + explicit-attestation guard. A
+// Workflow or VirtualObject handler is always rejected (kind tier, unconditional). A
+// Service-only registry is rejected by default unless the caller passes
+// WithNoDurableContextAttestation() (attestation tier). Rejection returns a classed
+// *ServeDurableContextRejectedError (ADR-0030 what/cause/hint triad, wraps
+// ErrServeDurableContextRejected) BEFORE jetstream.New or any goroutine starts — no partial
+// start, no leaked goroutine, and no in-flight invocation is ever the first one to discover
+// that remoteDispatchContext cannot honour ctx.Promise/ctx.Now/ctx.Rand/ctx.UUID.
 func Serve(ctx context.Context, nc *nats.Conn, reg *Registry, opts ...ServeOption) error {
 	if nc == nil {
 		return fmt.Errorf("sdk: Serve: nats connection must not be nil: %w", ErrServeConfigInvalid)
@@ -114,6 +125,10 @@ func Serve(ctx context.Context, nc *nats.Conn, reg *Registry, opts ...ServeOptio
 	cfg, err := newServeConfig(opts...)
 	if err != nil {
 		return err
+	}
+
+	if guardErr := validateDurableContextGuard(reg, cfg.noDurableContextAttested); guardErr != nil {
+		return guardErr
 	}
 
 	js, err := jetstream.New(nc)
@@ -209,6 +224,11 @@ type serveConfig struct {
 	workerName   string
 	drainTimeout time.Duration
 	concurrency  int
+	// noDurableContextAttested records whether the caller passed
+	// WithNoDurableContextAttestation() (Story 68.1, serve_guard.go) — the explicit,
+	// attributable claim that lifts the attestation-tier reject-by-default guard for a
+	// Service-only registry. Never lifts the unconditional kind-tier rejection.
+	noDurableContextAttested bool
 }
 
 const (
