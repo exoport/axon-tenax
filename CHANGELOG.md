@@ -7,6 +7,43 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html). The SDK is versioned in
 lockstep with the [Tenax engine](https://github.com/exoar/axon_tenax_engine) release it targets.
 
+## [0.2.0] - 2026-07-23
+
+The SDK becomes **handler-authoring-only**: `sdk.Serve` and its entire remote-worker surface are
+removed. Out-of-process durable workers now run on the engine's `tenax/pkg/worker` (CR-22), which
+Cortex — the only remote-worker consumer — has adopted and live-proven on a real 3-node R3 cluster
+against engine `v0.4.0`. This is the surface half of the two-repo lockstep (engine Story 65.2,
+ADR-0045 / ADR-0047): the protocol landed first (`pkg/worker`), the consumer migrated, and only then
+is the old surface removed — **at no point did a durably-reachable handler lose its only remote path**.
+
+Engine release tagging and the paired `require` bump are operator-only (ADR-0017 / ADR-0045): the
+engine's `go.mod` must move to this SDK version in the **same** step this tag is cut.
+
+### Removed
+
+- **`sdk.Serve` and the whole remote-worker serve surface** — `Serve(ctx, nc, reg, ...opts) error`,
+  the `ServeOption` constructors `WithConcurrency` / `WithDrainTimeout` / `WithWorkerName`, the
+  serve-time durable-`ctx.*` rejection guard and `WithNoDurableContextAttestation` (the v0.1.4
+  addition), the internal `remoteDispatchContext`, and the re-derived wire envelopes
+  (`sdk/serve_wire.go`). ADR-0047's frozen serve surface is retired. A `go build` / `grep` over this
+  tag finds none of these symbols.
+- **The `remoteDispatchContext` fabricated-success path is eliminated by construction.** Its four
+  durable verbs (`Now` / `Rand` / `UUID` / `Promise`) returned zero values with a `nil` error — a
+  structurally-unfixable honesty gap (the `Context` interface declares no `error` return on them) that
+  v0.1.4's guard could only make unreachable-without-a-false-attestation. Removing the only type that
+  implemented them closes it: Cortex confirmed **zero** `remoteDispatchContext` constructions and
+  **zero** non-comment `sdk.Serve` call sites in its tree.
+
+### Retained (unchanged)
+
+- The full **handler-authoring surface** stays exported and byte-compatible: `Context` (including the
+  CR-20 `CallWorkflow` / `SendWorkflow` verbs), `Promise`, `CancelAware`, the `Service` /
+  `VirtualObject` / `Workflow` handler types, `HandlerFunc` / `KeyedHandlerFunc`, `NewService` /
+  `NewWorkflow` / `NewCombinatorError`, `Register` / `GlobalRegistry`, the `ErrCancelled` /
+  `ErrKilled` / `ErrCallFailed` / `ErrCombinatorFailed` sentinels, and `sdk/fat.go` (ADR-0036). The
+  zero-engine-import boundary test (ADR-0028 / ADR-0045) still passes — removing serve only shrinks
+  the dependency graph.
+
 ## [0.1.4] - 2026-07-19
 
 ### Added

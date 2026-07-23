@@ -93,7 +93,7 @@ Both verbs carry a fixed, byte-stable return contract:
 ## Related
 
 - [Author a Workflow](./author-a-workflow.md) — write the callee's run-once + query handlers.
-- [Serve a remote worker](./serve-a-remote-worker.md) — run the callee Workflow in a separate
-  process via `sdk.Serve`.
+- Run the callee Workflow in a separate process — `sdk.Serve` was removed in `v0.2.0`; use the
+  engine's [`tenax/pkg/worker`](https://github.com/exoar/axon_tenax_engine/blob/main/docs/how-to/deploy-remote-workers.md).
 - [SDK context reference §4/§5](../reference/sdk-context.md#4--synchronous-calls) — full verb
   definitions.
